@@ -2,6 +2,7 @@ import Phaser from "phaser";
 
 import PreloaderScene from "./scenes/PreloaderScene";
 import InitialScene from "./scenes/InitialScene";
+import GameScene from "./scenes/GameScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -9,11 +10,8 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 600,
   physics: {
     default: "arcade",
-    arcade: {
-      gravity: { y: 500 },
-    },
   },
-  scene: [PreloaderScene, InitialScene],
+  scene: [PreloaderScene, InitialScene, GameScene],
   backgroundColor: "#21213B",
 };
 
