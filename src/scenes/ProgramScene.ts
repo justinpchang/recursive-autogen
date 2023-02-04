@@ -1,18 +1,33 @@
 import Phaser from "phaser";
 
 export default class ProgramScene extends Phaser.Scene {
-  private debugRect!: Phaser.GameObjects.Rectangle;
-  private points!: Phaser.Geom.Point[];
-  private closestPoint!: Phaser.Geom.Point;
+  private container!: Phaser.GameObjects.Container;
+  private points: Phaser.Geom.Point[];
+  private closestPointIndex!: number;
   private programBounds!: Phaser.Geom.Rectangle;
+  private instructions: Phaser.GameObjects.Image[];
 
   constructor() {
     super("program");
+
+    this.points = [];
+    this.instructions = [];
+  }
+
+  updatePoints() {
+    // Place points on each existing instruction and then one after that
+    this.points = [];
+    for (let i = 0; i < this.instructions.length + 1; i++) {
+      this.points.push(
+        new Phaser.Geom.Point(this.container.x + 25 + 45 * i, this.container.y + 75)
+      );
+    }
   }
 
   showPoints() {
-    for (const point of this.points) {
-      if (this.closestPoint?.x === point.x && this.closestPoint?.y === point.y) {
+    for (let i = 0; i < this.points.length; i++) {
+      const point = this.points[i];
+      if (i === this.closestPointIndex) {
         this.add.rectangle(point.x, point.y, 5, 5, 0xffff00);
       } else {
         this.add.rectangle(point.x, point.y, 5, 5, 0x00ffff);
@@ -20,60 +35,61 @@ export default class ProgramScene extends Phaser.Scene {
     }
   }
 
-  getClosestPoint(x: number, y: number): Phaser.Geom.Point {
+  updateClosestPointIndex(x: number, y: number): void {
     let origin = new Phaser.Geom.Point(x, y);
-    let closestPoint = this.points[0];
+    let closestPointIndex = 0;
     let minDistance = Infinity;
-    for (const point of this.points) {
+    for (let i = 0; i < this.points.length; i++) {
+      const point = this.points[i];
       let distance = Phaser.Math.Distance.BetweenPoints(point, origin);
       if (distance < minDistance) {
         minDistance = distance;
-        closestPoint = point;
+        closestPointIndex = i;
       }
     }
-    return closestPoint;
+    this.closestPointIndex = closestPointIndex;
   }
 
   create(): void {
-    this.points = [];
-
-    const container = this.add.container(50, 450);
+    this.container = this.add.container(50, 450);
 
     // Add control bank row
     const bankBg = this.add.rectangle(0, 0, 500, 50, 0x3e4652).setOrigin(0);
-    container.add(bankBg);
+    this.container.add(bankBg);
 
     // Add blue program row
     const blueProgramRow = this.add.rectangle(0, 50, 500, 50, 0x2c589c).setOrigin(0);
-    container.add(blueProgramRow);
+    this.container.add(blueProgramRow);
 
     // Add program bounds
     this.programBounds = new Phaser.Geom.Rectangle(
-      container.x + 250,
-      container.y + 50 + 25,
+      this.container.x + 250,
+      this.container.y + 50 + 25,
       500,
       50
     );
-
-    // Add points
-    this.points.push(new Phaser.Geom.Point(container.x + 25, container.y + 75));
-    //this.points.push(new Phaser.Geom.Point(container.x + 70, container.y + 75));
-    //this.points.push(new Phaser.Geom.Point(container.x + 115, container.y + 75));
 
     // Add controls
     const rotateCCWBg = this.add.image(25, 25, "rotate_ccw").setDisplaySize(40, 40);
     const rotateCCW = this.add.image(25, 25, "rotate_ccw").setDisplaySize(40, 40).setInteractive();
     this.input.setDraggable(rotateCCW);
-    container.add(rotateCCWBg);
-    container.add(rotateCCW);
-    const forward = this.add.image(70, 25, "forward").setDisplaySize(40, 40);
-    container.add(forward);
-    const rotateCW = this.add.image(115, 25, "rotate_cw").setDisplaySize(40, 40);
-    container.add(rotateCW);
+    this.container.add(rotateCCWBg);
+    this.container.add(rotateCCW);
+    const forwardBg = this.add.image(70, 25, "forward").setDisplaySize(40, 40);
+    const forward = this.add.image(70, 25, "forward").setDisplaySize(40, 40).setInteractive();
+    this.input.setDraggable(forward);
+    this.container.add(forwardBg);
+    this.container.add(forward);
+    const rotateCWBg = this.add.image(115, 25, "rotate_cw").setDisplaySize(40, 40);
+    const rotateCW = this.add.image(115, 25, "rotate_cw").setDisplaySize(40, 40).setInteractive();
+    this.input.setDraggable(rotateCW);
+    this.container.add(rotateCWBg);
+    this.container.add(rotateCW);
+
+    this.updatePoints();
 
     // Set up drag and drop
     this.showPoints();
-    this.debugRect = this.add.rectangle(1000, 1000, 50, 50, 0xff0000, 0.1).setOrigin(0);
     this.input.topOnly = true;
     this.input.on(
       Phaser.Input.Events.DRAG_START,
@@ -83,7 +99,7 @@ export default class ProgramScene extends Phaser.Scene {
           .setDisplaySize(40, 40)
           .setInteractive();
         this.input.setDraggable(duplicate);
-        container.add(duplicate);
+        this.container.add(duplicate);
       }
     );
     this.input.on(
@@ -96,31 +112,50 @@ export default class ProgramScene extends Phaser.Scene {
       ) => {
         gameObject.x = dragX;
         gameObject.y = dragY;
-        this.closestPoint = this.getClosestPoint(dragX + container.x, dragY + container.y);
+        this.updateClosestPointIndex(dragX + this.container.x, dragY + this.container.y);
+
         this.showPoints();
       }
     );
     this.input.on(
       Phaser.Input.Events.DRAG_END,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
-        // If trying to drop out of bounds, delete
         if (
           Phaser.Geom.Rectangle.Contains(
             this.programBounds,
-            gameObject.x + container.x + 250,
-            gameObject.y + container.y + 25
+            gameObject.x + this.container.x + 250,
+            gameObject.y + this.container.y + 25
           )
         ) {
           this.tweens.add({
             targets: gameObject,
             duration: 100,
             ease: "Sine.easeInOut",
-            x: this.closestPoint.x - container.x,
-            y: this.closestPoint.y - container.y,
+            x: this.points[this.closestPointIndex].x - this.container.x,
+            y: this.points[this.closestPointIndex].y - this.container.y,
           });
+
+          // Move existing instructions around
+          for (let i = this.closestPointIndex; i < this.instructions.length; i++) {
+            this.tweens.add({
+              targets: this.instructions[i],
+              duration: 100,
+              ease: "Sine.easeInOut",
+              x: this.instructions[i].x + 45,
+            });
+          }
+
+          // Add new instruction
+          this.instructions = [
+            ...this.instructions.slice(0, this.closestPointIndex),
+            gameObject,
+            ...this.instructions.slice(this.closestPointIndex),
+          ];
         } else {
           gameObject.destroy();
         }
+
+        this.updatePoints();
         this.showPoints();
       }
     );
