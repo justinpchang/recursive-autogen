@@ -5,9 +5,14 @@ const MARGIN = 5;
 const CONTAINER_WIDTH = 500;
 const CONTAINER_HEIGHT = 50;
 
+function generateUUID(): string {
+  return Phaser.Utils.String.UUID();
+}
+
 export default class ProgramScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container;
   private points: Phaser.Geom.Point[];
+  private pointsGroup!: Phaser.GameObjects.Group;
   private closestPointIndex!: number;
   private programBounds!: Phaser.Geom.Rectangle;
   private instructions: Phaser.GameObjects.Image[];
@@ -17,6 +22,14 @@ export default class ProgramScene extends Phaser.Scene {
 
     this.points = [];
     this.instructions = [];
+  }
+
+  debug_logInstructions() {
+    console.group("Instructions");
+    this.instructions.forEach((instruction) => {
+      console.log(instruction.getData("id").slice(0, 5), instruction.texture.key);
+    });
+    console.groupEnd();
   }
 
   updatePoints() {
@@ -32,13 +45,18 @@ export default class ProgramScene extends Phaser.Scene {
     }
   }
 
-  showPoints() {
+  debug_clearPoints() {
+    this.closestPointIndex = -1;
+  }
+
+  debug_showPoints() {
+    this.pointsGroup.clear(true, true);
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
       if (i === this.closestPointIndex) {
-        this.add.rectangle(point.x, point.y, 5, 5, 0xffff00);
+        this.pointsGroup.add(this.add.rectangle(point.x, point.y, 50, 50, 0x00ffff).setAlpha(0.2));
       } else {
-        this.add.rectangle(point.x, point.y, 5, 5, 0x00ffff);
+        //this.pointsGroup.add(this.add.rectangle(point.x, point.y, 5, 5, 0x00ffff));
       }
     }
   }
@@ -58,19 +76,23 @@ export default class ProgramScene extends Phaser.Scene {
     this.closestPointIndex = closestPointIndex;
   }
 
-  addControl(x: number, y: number, texture: string, interactive = true): Phaser.GameObjects.Image {
-    const control = this.add.image(x, y, texture).setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
-    this.container.add(control);
+  addControl(x: number, y: number, texture: string): Phaser.GameObjects.Image {
+    const control = this.add
+      .image(x, y, texture)
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
+      .setInteractive()
+      .setData("id", generateUUID())
+      .setData("isPlaced", false);
 
-    if (interactive) {
-      control.setInteractive();
-      this.input.setDraggable(control);
-    }
+    this.container.add(control);
+    this.input.setDraggable(control);
 
     return control;
   }
 
   create(): void {
+    this.pointsGroup = this.add.group();
+
     this.container = this.add.container(50, 450);
 
     // Add control bank row
@@ -104,7 +126,24 @@ export default class ProgramScene extends Phaser.Scene {
     this.input.on(
       Phaser.Input.Events.DRAG_START,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
-        this.addControl(gameObject.x, gameObject.y, gameObject.texture as unknown as string);
+        if (gameObject.getData("isPlaced")) {
+          // Remove game object from instructions
+          let found = false;
+          this.instructions = this.instructions.filter((instruction) => {
+            // Push GT game objects to the left to cover up hole
+            if (found)
+              this.tweens.add({
+                targets: instruction,
+                duration: 100,
+                ease: "Sine.easeInOut",
+                x: instruction.x - (MARGIN + UNIT_LENGTH),
+              });
+            if (instruction.getData("id") !== gameObject.getData("id")) return true;
+            found = true;
+          });
+        } else {
+          this.addControl(gameObject.x, gameObject.y, gameObject.texture as unknown as string);
+        }
       }
     );
     this.input.on(
@@ -138,7 +177,7 @@ export default class ProgramScene extends Phaser.Scene {
             y: this.points[this.closestPointIndex].y - this.container.y,
           });
 
-          // Move existing instructions around
+          // Push gte instructions to the right to make room
           for (let i = this.closestPointIndex; i < this.instructions.length; i++) {
             this.tweens.add({
               targets: this.instructions[i],
@@ -154,15 +193,20 @@ export default class ProgramScene extends Phaser.Scene {
             gameObject,
             ...this.instructions.slice(this.closestPointIndex),
           ];
+
+          // Update object data
+          gameObject.setData("isPlaced", true);
         } else {
           gameObject.destroy();
         }
+        this.debug_clearPoints();
+        this.debug_logInstructions();
       }
     );
   }
 
   update(): void {
     this.updatePoints();
-    this.showPoints();
+    this.debug_showPoints();
   }
 }
