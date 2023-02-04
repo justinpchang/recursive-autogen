@@ -45,7 +45,7 @@ export default class ProgramScene extends Phaser.Scene {
     }
   }
 
-  debug_clearPoints() {
+  resetClosestPoint() {
     this.closestPointIndex = -1;
   }
 
@@ -156,7 +156,19 @@ export default class ProgramScene extends Phaser.Scene {
       ) => {
         gameObject.x = dragX;
         gameObject.y = dragY;
-        this.updateClosestPointIndex(dragX + this.container.x, dragY + this.container.y);
+
+        // Show drop location if within container
+        if (
+          Phaser.Geom.Rectangle.Contains(
+            this.programBounds,
+            gameObject.x + this.container.x + CONTAINER_WIDTH / 2,
+            gameObject.y + this.container.y + MARGIN + UNIT_LENGTH / 2
+          )
+        ) {
+          this.updateClosestPointIndex(dragX + this.container.x, dragY + this.container.y);
+        } else {
+          this.resetClosestPoint();
+        }
       }
     );
     this.input.on(
@@ -199,7 +211,7 @@ export default class ProgramScene extends Phaser.Scene {
         } else {
           gameObject.destroy();
         }
-        this.debug_clearPoints();
+        this.resetClosestPoint();
         this.debug_logInstructions();
       }
     );
