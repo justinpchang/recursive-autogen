@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import PreloaderScene from "./scenes/PreloaderScene";
 import InitialScene from "./scenes/InitialScene";
 import GameScene from "./scenes/GameScene";
+import ProgramScene from "./scenes/ProgramScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -11,8 +12,10 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: "arcade",
   },
-  scene: [PreloaderScene, InitialScene, GameScene],
-  backgroundColor: "#21213B",
+  scene: [PreloaderScene, InitialScene, GameScene, ProgramScene],
+  backgroundColor: "#000111",
 };
 
-export default new Phaser.Game(config);
+var game = new Phaser.Game(config);
+
+export default game;
