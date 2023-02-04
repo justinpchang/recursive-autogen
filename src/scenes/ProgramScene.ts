@@ -94,30 +94,13 @@ export default class ProgramScene extends Phaser.Scene {
     );
 
     // Add controls
-    this.addControl(
-      MARGIN * 1 + (UNIT_LENGTH * 1) / 2,
-      MARGIN + UNIT_LENGTH / 2,
-      "rotate_ccw",
-      false
-    );
     this.addControl(MARGIN * 1 + (UNIT_LENGTH * 1) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw");
-    this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward", false);
     this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward");
-    this.addControl(
-      MARGIN * 3 + (UNIT_LENGTH * 5) / 2,
-      MARGIN + UNIT_LENGTH / 2,
-      "rotate_cw",
-      false
-    );
-    this.addControl(
-      MARGIN * 3 + (UNIT_LENGTH * 5) / 2,
-      MARGIN + UNIT_LENGTH / 2,
-      "rotate_cw",
-      true
-    );
+    this.addControl(MARGIN * 3 + (UNIT_LENGTH * 5) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_cw");
 
     // Set up drag and drop
     this.input.topOnly = true;
+
     this.input.on(
       Phaser.Input.Events.DRAG_START,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
