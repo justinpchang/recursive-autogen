@@ -58,6 +58,18 @@ export default class ProgramScene extends Phaser.Scene {
     this.closestPointIndex = closestPointIndex;
   }
 
+  addControl(x: number, y: number, texture: string, interactive = true): Phaser.GameObjects.Image {
+    const control = this.add.image(x, y, texture).setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
+    this.container.add(control);
+
+    if (interactive) {
+      control.setInteractive();
+      this.input.setDraggable(control);
+    }
+
+    return control;
+  }
+
   create(): void {
     this.container = this.add.container(50, 450);
 
@@ -82,59 +94,34 @@ export default class ProgramScene extends Phaser.Scene {
     );
 
     // Add controls
-    const rotateCCWBg = this.add
-      .image(MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw")
-      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
-    const rotateCCW = this.add
-      .image(MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw")
-      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
-      .setInteractive();
-    this.input.setDraggable(rotateCCW);
-    this.container.add(rotateCCWBg);
-    this.container.add(rotateCCW);
-    const forwardBg = this.add
-      .image(MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "forward")
-      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
-    const forward = this.add
-      .image(MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "forward")
-      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
-      .setInteractive();
-    this.input.setDraggable(forward);
-    this.container.add(forwardBg);
-    this.container.add(forward);
-    const rotateCWBg = this.add
-      .image(
-        MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2,
-        MARGIN + UNIT_LENGTH / 2,
-        "rotate_cw"
-      )
-      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
-    const rotateCW = this.add
-      .image(
-        MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2,
-        MARGIN + UNIT_LENGTH / 2,
-        "rotate_cw"
-      )
-      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
-      .setInteractive();
-    this.input.setDraggable(rotateCW);
-    this.container.add(rotateCWBg);
-    this.container.add(rotateCW);
-
-    this.updatePoints();
+    this.addControl(
+      MARGIN * 1 + (UNIT_LENGTH * 1) / 2,
+      MARGIN + UNIT_LENGTH / 2,
+      "rotate_ccw",
+      false
+    );
+    this.addControl(MARGIN * 1 + (UNIT_LENGTH * 1) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw");
+    this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward", false);
+    this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward");
+    this.addControl(
+      MARGIN * 3 + (UNIT_LENGTH * 5) / 2,
+      MARGIN + UNIT_LENGTH / 2,
+      "rotate_cw",
+      false
+    );
+    this.addControl(
+      MARGIN * 3 + (UNIT_LENGTH * 5) / 2,
+      MARGIN + UNIT_LENGTH / 2,
+      "rotate_cw",
+      true
+    );
 
     // Set up drag and drop
-    this.showPoints();
     this.input.topOnly = true;
     this.input.on(
       Phaser.Input.Events.DRAG_START,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
-        const duplicate = this.add
-          .image(gameObject.x, gameObject.y, gameObject.texture)
-          .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
-          .setInteractive();
-        this.input.setDraggable(duplicate);
-        this.container.add(duplicate);
+        this.addControl(gameObject.x, gameObject.y, gameObject.texture as unknown as string);
       }
     );
     this.input.on(
@@ -148,14 +135,11 @@ export default class ProgramScene extends Phaser.Scene {
         gameObject.x = dragX;
         gameObject.y = dragY;
         this.updateClosestPointIndex(dragX + this.container.x, dragY + this.container.y);
-
-        this.showPoints();
       }
     );
     this.input.on(
       Phaser.Input.Events.DRAG_END,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
-        console.log(this.container.width);
         if (
           Phaser.Geom.Rectangle.Contains(
             this.programBounds,
@@ -190,12 +174,12 @@ export default class ProgramScene extends Phaser.Scene {
         } else {
           gameObject.destroy();
         }
-
-        this.updatePoints();
-        this.showPoints();
       }
     );
   }
 
-  update(): void {}
+  update(): void {
+    this.updatePoints();
+    this.showPoints();
+  }
 }
