@@ -1,5 +1,10 @@
 import Phaser from "phaser";
 
+const UNIT_LENGTH = 40;
+const MARGIN = 5;
+const CONTAINER_WIDTH = 500;
+const CONTAINER_HEIGHT = 50;
+
 export default class ProgramScene extends Phaser.Scene {
   private container!: Phaser.GameObjects.Container;
   private points: Phaser.Geom.Point[];
@@ -19,7 +24,10 @@ export default class ProgramScene extends Phaser.Scene {
     this.points = [];
     for (let i = 0; i < this.instructions.length + 1; i++) {
       this.points.push(
-        new Phaser.Geom.Point(this.container.x + 25 + 45 * i, this.container.y + 75)
+        new Phaser.Geom.Point(
+          this.container.x + MARGIN + UNIT_LENGTH / 2 + (MARGIN + UNIT_LENGTH) * i,
+          this.container.y + 75
+        )
       );
     }
   }
@@ -54,34 +62,61 @@ export default class ProgramScene extends Phaser.Scene {
     this.container = this.add.container(50, 450);
 
     // Add control bank row
-    const bankBg = this.add.rectangle(0, 0, 500, 50, 0x3e4652).setOrigin(0);
+    const bankBg = this.add
+      .rectangle(0, 0, CONTAINER_WIDTH, CONTAINER_HEIGHT, 0x3e4652)
+      .setOrigin(0);
     this.container.add(bankBg);
 
     // Add blue program row
-    const blueProgramRow = this.add.rectangle(0, 50, 500, 50, 0x2c589c).setOrigin(0);
+    const blueProgramRow = this.add
+      .rectangle(0, CONTAINER_HEIGHT, CONTAINER_WIDTH, CONTAINER_HEIGHT, 0x2c589c)
+      .setOrigin(0);
     this.container.add(blueProgramRow);
 
     // Add program bounds
     this.programBounds = new Phaser.Geom.Rectangle(
-      this.container.x + 250,
-      this.container.y + 50 + 25,
-      500,
-      50
+      this.container.x + CONTAINER_WIDTH / 2,
+      this.container.y + CONTAINER_HEIGHT + CONTAINER_HEIGHT / 2,
+      CONTAINER_WIDTH,
+      CONTAINER_HEIGHT
     );
 
     // Add controls
-    const rotateCCWBg = this.add.image(25, 25, "rotate_ccw").setDisplaySize(40, 40);
-    const rotateCCW = this.add.image(25, 25, "rotate_ccw").setDisplaySize(40, 40).setInteractive();
+    const rotateCCWBg = this.add
+      .image(MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw")
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
+    const rotateCCW = this.add
+      .image(MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw")
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
+      .setInteractive();
     this.input.setDraggable(rotateCCW);
     this.container.add(rotateCCWBg);
     this.container.add(rotateCCW);
-    const forwardBg = this.add.image(70, 25, "forward").setDisplaySize(40, 40);
-    const forward = this.add.image(70, 25, "forward").setDisplaySize(40, 40).setInteractive();
+    const forwardBg = this.add
+      .image(MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "forward")
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
+    const forward = this.add
+      .image(MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2, MARGIN + UNIT_LENGTH / 2, "forward")
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
+      .setInteractive();
     this.input.setDraggable(forward);
     this.container.add(forwardBg);
     this.container.add(forward);
-    const rotateCWBg = this.add.image(115, 25, "rotate_cw").setDisplaySize(40, 40);
-    const rotateCW = this.add.image(115, 25, "rotate_cw").setDisplaySize(40, 40).setInteractive();
+    const rotateCWBg = this.add
+      .image(
+        MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2,
+        MARGIN + UNIT_LENGTH / 2,
+        "rotate_cw"
+      )
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH);
+    const rotateCW = this.add
+      .image(
+        MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH + MARGIN + UNIT_LENGTH / 2,
+        MARGIN + UNIT_LENGTH / 2,
+        "rotate_cw"
+      )
+      .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
+      .setInteractive();
     this.input.setDraggable(rotateCW);
     this.container.add(rotateCWBg);
     this.container.add(rotateCW);
@@ -96,7 +131,7 @@ export default class ProgramScene extends Phaser.Scene {
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
         const duplicate = this.add
           .image(gameObject.x, gameObject.y, gameObject.texture)
-          .setDisplaySize(40, 40)
+          .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
           .setInteractive();
         this.input.setDraggable(duplicate);
         this.container.add(duplicate);
@@ -120,11 +155,12 @@ export default class ProgramScene extends Phaser.Scene {
     this.input.on(
       Phaser.Input.Events.DRAG_END,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
+        console.log(this.container.width);
         if (
           Phaser.Geom.Rectangle.Contains(
             this.programBounds,
-            gameObject.x + this.container.x + 250,
-            gameObject.y + this.container.y + 25
+            gameObject.x + this.container.x + CONTAINER_WIDTH / 2,
+            gameObject.y + this.container.y + MARGIN + UNIT_LENGTH / 2
           )
         ) {
           this.tweens.add({
@@ -141,7 +177,7 @@ export default class ProgramScene extends Phaser.Scene {
               targets: this.instructions[i],
               duration: 100,
               ease: "Sine.easeInOut",
-              x: this.instructions[i].x + 45,
+              x: this.instructions[i].x + MARGIN + UNIT_LENGTH,
             });
           }
 
