@@ -45,6 +45,13 @@ export default class ProgramScene extends Phaser.Scene {
     }
   }
 
+  resetInstructions() {
+    for (const instruction of this.instructions) {
+      instruction.destroy();
+    }
+    this.instructions = [];
+  }
+
   resetClosestPoint() {
     this.closestPointIndex = -1;
   }
@@ -115,10 +122,22 @@ export default class ProgramScene extends Phaser.Scene {
       CONTAINER_HEIGHT
     );
 
-    // Add controls
+    // Add movement controls
     this.addControl(MARGIN * 1 + (UNIT_LENGTH * 1) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw");
     this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward");
     this.addControl(MARGIN * 3 + (UNIT_LENGTH * 5) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_cw");
+
+    // Add execution controls
+    this.addControl(
+      CONTAINER_WIDTH - (MARGIN * 2 + (UNIT_LENGTH * 3) / 2),
+      MARGIN + UNIT_LENGTH / 2,
+      "x"
+    );
+    this.addControl(
+      CONTAINER_WIDTH - (MARGIN * 1 + (UNIT_LENGTH * 1) / 2),
+      MARGIN + UNIT_LENGTH / 2,
+      "play"
+    );
 
     // Set up drag and drop
     this.input.topOnly = true;
@@ -213,6 +232,28 @@ export default class ProgramScene extends Phaser.Scene {
         }
         this.resetClosestPoint();
         this.debug_logInstructions();
+      }
+    );
+
+    // Set up execution control click events
+    this.input.on(
+      Phaser.Input.Events.POINTER_DOWN,
+      (_pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.Image[]) => {
+        if (gameObjects.length === 0) return;
+
+        const gameObject = gameObjects[0];
+
+        switch (gameObject.texture?.key) {
+          case "x":
+            this.resetInstructions();
+            break;
+          case "play":
+            console.log("play");
+            break;
+          case "stop":
+            console.log("stop");
+            break;
+        }
       }
     );
   }
