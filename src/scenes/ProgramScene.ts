@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import eventsCenter, { GameEvent } from "../shared/EventsCenter";
+import { Instruction } from "./GameScene";
 
 const UNIT_LENGTH = 40;
 const MARGIN = 5;
@@ -16,12 +18,29 @@ export default class ProgramScene extends Phaser.Scene {
   private closestPointIndex!: number;
   private programBounds!: Phaser.Geom.Rectangle;
   private instructions: Phaser.GameObjects.Image[];
+  private playStopControls: Phaser.GameObjects.Image[];
 
   constructor() {
     super("program");
 
     this.points = [];
     this.instructions = [];
+    this.playStopControls = [];
+  }
+
+  interpretInstructions(): Instruction[] {
+    return this.instructions.map((instruction) => {
+      switch (instruction.texture.key) {
+        case "rotate_ccw":
+          return Instruction.RotateCCW;
+        case "forward":
+          return Instruction.Forward;
+        case "rotate_cw":
+          return Instruction.RotateCW;
+        default:
+          throw "Invalid instruction";
+      }
+    });
   }
 
   debug_logInstructions() {
@@ -83,18 +102,34 @@ export default class ProgramScene extends Phaser.Scene {
     this.closestPointIndex = closestPointIndex;
   }
 
-  addControl(x: number, y: number, texture: string): Phaser.GameObjects.Image {
+  addControl(
+    x: number,
+    y: number,
+    texture: string,
+    isDraggable: boolean
+  ): Phaser.GameObjects.Image {
     const control = this.add
       .image(x, y, texture)
       .setDisplaySize(UNIT_LENGTH, UNIT_LENGTH)
       .setInteractive()
       .setData("id", generateUUID())
-      .setData("isPlaced", false);
+      .setData("isPlaced", false)
+      .setData("isDraggable", isDraggable);
 
     this.container.add(control);
     this.input.setDraggable(control);
 
     return control;
+  }
+
+  togglePlayStopControls() {
+    this.playStopControls.forEach((control) => {
+      if (control.visible) {
+        control.setVisible(false);
+      } else {
+        control.setVisible(true);
+      }
+    });
   }
 
   create(): void {
@@ -123,21 +158,41 @@ export default class ProgramScene extends Phaser.Scene {
     );
 
     // Add movement controls
-    this.addControl(MARGIN * 1 + (UNIT_LENGTH * 1) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_ccw");
-    this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward");
-    this.addControl(MARGIN * 3 + (UNIT_LENGTH * 5) / 2, MARGIN + UNIT_LENGTH / 2, "rotate_cw");
+    this.addControl(
+      MARGIN * 1 + (UNIT_LENGTH * 1) / 2,
+      MARGIN + UNIT_LENGTH / 2,
+      "rotate_ccw",
+      true
+    );
+    this.addControl(MARGIN * 2 + (UNIT_LENGTH * 3) / 2, MARGIN + UNIT_LENGTH / 2, "forward", true);
+    this.addControl(
+      MARGIN * 3 + (UNIT_LENGTH * 5) / 2,
+      MARGIN + UNIT_LENGTH / 2,
+      "rotate_cw",
+      true
+    );
 
     // Add execution controls
     this.addControl(
       CONTAINER_WIDTH - (MARGIN * 2 + (UNIT_LENGTH * 3) / 2),
       MARGIN + UNIT_LENGTH / 2,
-      "x"
+      "x",
+      false
     );
-    this.addControl(
-      CONTAINER_WIDTH - (MARGIN * 1 + (UNIT_LENGTH * 1) / 2),
-      MARGIN + UNIT_LENGTH / 2,
-      "play"
-    );
+    this.playStopControls = [
+      this.addControl(
+        CONTAINER_WIDTH - (MARGIN * 1 + (UNIT_LENGTH * 1) / 2),
+        MARGIN + UNIT_LENGTH / 2,
+        "stop",
+        false
+      ).setVisible(false),
+      this.addControl(
+        CONTAINER_WIDTH - (MARGIN * 1 + (UNIT_LENGTH * 1) / 2),
+        MARGIN + UNIT_LENGTH / 2,
+        "play",
+        false
+      ),
+    ];
 
     // Set up drag and drop
     this.input.topOnly = true;
@@ -145,6 +200,8 @@ export default class ProgramScene extends Phaser.Scene {
     this.input.on(
       Phaser.Input.Events.DRAG_START,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
+        if (!gameObject.getData("isDraggable")) return;
+
         if (gameObject.getData("isPlaced")) {
           // Remove game object from instructions
           let found = false;
@@ -161,7 +218,12 @@ export default class ProgramScene extends Phaser.Scene {
             found = true;
           });
         } else {
-          this.addControl(gameObject.x, gameObject.y, gameObject.texture as unknown as string);
+          this.addControl(
+            gameObject.x,
+            gameObject.y,
+            gameObject.texture as unknown as string,
+            true
+          );
         }
       }
     );
@@ -173,6 +235,8 @@ export default class ProgramScene extends Phaser.Scene {
         dragX: number,
         dragY: number
       ) => {
+        if (!gameObject.getData("isDraggable")) return;
+
         gameObject.x = dragX;
         gameObject.y = dragY;
 
@@ -193,6 +257,8 @@ export default class ProgramScene extends Phaser.Scene {
     this.input.on(
       Phaser.Input.Events.DRAG_END,
       (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Image) => {
+        if (!gameObject.getData("isDraggable")) return;
+
         if (
           Phaser.Geom.Rectangle.Contains(
             this.programBounds,
@@ -231,13 +297,13 @@ export default class ProgramScene extends Phaser.Scene {
           gameObject.destroy();
         }
         this.resetClosestPoint();
-        this.debug_logInstructions();
+        //this.debug_logInstructions();
       }
     );
 
     // Set up execution control click events
     this.input.on(
-      Phaser.Input.Events.POINTER_DOWN,
+      Phaser.Input.Events.POINTER_UP,
       (_pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.Image[]) => {
         if (gameObjects.length === 0) return;
 
@@ -246,16 +312,24 @@ export default class ProgramScene extends Phaser.Scene {
         switch (gameObject.texture?.key) {
           case "x":
             this.resetInstructions();
+            eventsCenter.emit(GameEvent.Stop);
             break;
           case "play":
-            console.log("play");
+            this.togglePlayStopControls();
+            eventsCenter.emit(GameEvent.Play, this.interpretInstructions());
             break;
           case "stop":
-            console.log("stop");
+            this.togglePlayStopControls();
+            eventsCenter.emit(GameEvent.Stop);
             break;
         }
       }
     );
+
+    // Listen to game events
+    eventsCenter.on(GameEvent.Finished, () => {
+      this.togglePlayStopControls();
+    });
   }
 
   update(): void {

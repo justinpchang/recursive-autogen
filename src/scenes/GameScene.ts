@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import eventsCenter, { GameEvent } from "../shared/EventsCenter";
 
 const MAP = [
   [1, 1, 1, 1, 1, 1, 1, 1],
@@ -11,7 +12,7 @@ const MAP = [
   [1, 1, 1, 1, 1, 1, 1, 1],
 ];
 
-enum Instruction {
+export enum Instruction {
   Forward,
   RotateCW,
   RotateCCW,
@@ -34,9 +35,12 @@ const EASE = "Sine.easeInOut";
 export default class GameScene extends Phaser.Scene {
   private walls!: Phaser.Physics.Arcade.StaticGroup;
   private player!: Phaser.GameObjects.Triangle;
+  private instructions: Instruction[];
 
   constructor() {
     super("game");
+
+    this.instructions = [];
   }
 
   drawTile(row: number, col: number, color?: number): Phaser.GameObjects.Rectangle {
@@ -64,10 +68,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   startInstruction(index: number): void {
-    if (index >= INSTRUCTIONS.length) {
+    if (index >= this.instructions.length) {
+      if (this.instructions.length > 0) {
+        eventsCenter.emit(GameEvent.Finished);
+      }
       return;
     }
-    switch (INSTRUCTIONS[index]) {
+    switch (this.instructions[index]) {
       case Instruction.Forward:
         const delta = new Phaser.Math.Vector2(UNIT_LENGTH, 0).setAngle(
           Phaser.Math.DegToRad(this.player.angle)
@@ -93,7 +100,7 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  create(): void {
+  drawMap(): void {
     // Draw map
     this.walls = this.physics.add.staticGroup();
     for (let row = 0; row < MAP.length; row += 1) {
@@ -129,6 +136,37 @@ export default class GameScene extends Phaser.Scene {
 
     // Add colliders
     this.physics.add.collider(this.player, this.walls);
+  }
+
+  resetGame(): void {
+    this.instructions = [];
+    this.tweens.killAll();
+    for (let row = 0; row < MAP.length; row += 1) {
+      for (let col = 0; col < MAP[row].length; col += 1) {
+        const tile = MAP[row][col];
+        switch (tile) {
+          case 2: // player
+            this.player.setPosition(X_OFFSET + col * UNIT_LENGTH, Y_OFFSET + row * UNIT_LENGTH);
+            this.player.angle = -90;
+            break;
+        }
+      }
+    }
+  }
+
+  create(): void {
+    this.drawMap();
+
+    // Listen for game events
+    eventsCenter.on(GameEvent.Play, (instructions: Instruction[]) => {
+      this.resetGame();
+      this.instructions = instructions;
+      this.startInstruction(0);
+    });
+
+    eventsCenter.on(GameEvent.Stop, () => {
+      this.resetGame();
+    });
 
     // Start
     this.startInstruction(0);
