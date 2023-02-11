@@ -18,14 +18,6 @@ export enum Instruction {
   RotateCCW,
 }
 
-const INSTRUCTIONS: Instruction[] = [
-  Instruction.Forward,
-  Instruction.RotateCW,
-  Instruction.Forward,
-  Instruction.RotateCCW,
-  Instruction.Forward,
-];
-
 const UNIT_LENGTH = 40;
 const X_OFFSET = 100;
 const Y_OFFSET = 100;
