@@ -2,12 +2,10 @@
     "compilerOptions": {
         "target": "ESNext",
         "moduleResolution": "node",
-        "noEmit": true,
         "allowJs": true,
         "allowSyntheticDefaultImports": true,
-        "strict": true
+        "strict": true,
+        "typeRoots": ["node_modules/@types", "src/types"]
     },
-    "include": [
-        "./src/**/*"
-    ]
+    "include": ["./src/**/*"]
 }
