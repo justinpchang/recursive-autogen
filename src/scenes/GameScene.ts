@@ -160,6 +160,18 @@ export default class GameScene extends Phaser.Scene {
       this.resetGame();
     });
 
+    // Remove loading screen
+    let loadingScreen = document.getElementById("loading-screen");
+    if (loadingScreen) {
+      loadingScreen.style.display = "none";
+      this.time.addEvent({
+        delay: 1000,
+        callback: () => {
+          loadingScreen?.remove();
+        },
+      });
+    }
+
     // Start
     this.startInstruction(0);
   }
